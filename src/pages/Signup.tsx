@@ -88,21 +88,28 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
+      // Fix: Remove the 'data' property from options since it's not allowed by VerifyOtpParams type
       const { data: sessionData, error } = await supabase.auth.verifyOtp({
         email,
         token: data.otp,
         type: 'signup',
-        options: {
-          data: {
-            name,
-          },
-        },
       });
       
       if (error) {
         toast.error(error.message);
         setIsLoading(false);
         return;
+      }
+      
+      // After successful verification, update the user's metadata with their name
+      if (sessionData.user) {
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { name }
+        });
+        
+        if (updateError) {
+          console.error('Error updating user metadata:', updateError);
+        }
       }
       
       toast.success('Account created successfully!');
