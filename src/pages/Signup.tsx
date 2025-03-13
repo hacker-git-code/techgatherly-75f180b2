@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Lock, Mail, User } from 'lucide-react';
+import { Lock, Mail, Phone, User, MessageSquare } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
+import { Toggle } from '@/components/ui/toggle';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +14,9 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 
 interface SignupFormValues {
   name: string;
-  email: string;
+  identifier: string;
+  password: string;
+  isPhone: boolean;
 }
 
 interface OtpFormValues {
@@ -24,8 +27,10 @@ const Signup = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showOtpForm, setShowOtpForm] = useState(false);
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [name, setName] = useState('');
+  const [usePassword, setUsePassword] = useState(false);
+  const [isPhone, setIsPhone] = useState(false);
   
   // Check if user is already logged in
   useEffect(() => {
@@ -42,7 +47,9 @@ const Signup = () => {
   const form = useForm<SignupFormValues>({
     defaultValues: {
       name: '',
-      email: '',
+      identifier: '',
+      password: '',
+      isPhone: false,
     },
   });
 
@@ -54,28 +61,70 @@ const Signup = () => {
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
-    setEmail(data.email);
+    setIdentifier(data.identifier);
     setName(data.name);
+    setIsPhone(data.isPhone);
     
     try {
-      const { data: otpData, error } = await supabase.auth.signInWithOtp({
-        email: data.email,
-        options: {
+      if (usePassword) {
+        // Signup with password
+        const email = isPhone ? '' : data.identifier;
+        const phone = isPhone ? data.identifier : '';
+        
+        const { data: userData, error } = await supabase.auth.signUp({
+          email,
+          phone,
+          password: data.password,
+          options: {
+            data: {
+              name: data.name,
+            },
+          },
+        });
+        
+        if (error) {
+          toast.error(error.message);
+          setIsLoading(false);
+          return;
+        }
+        
+        toast.success('Account created successfully!');
+        navigate('/chat');
+      } else {
+        // Signup with OTP
+        const options = {
           data: {
             name: data.name,
           },
           emailRedirectTo: window.location.origin + '/chat',
-        },
-      });
-      
-      if (error) {
-        toast.error(error.message);
-        setIsLoading(false);
-        return;
+        };
+        
+        let authResult;
+        if (isPhone) {
+          // Phone OTP
+          authResult = await supabase.auth.signInWithOtp({
+            phone: data.identifier,
+            options,
+          });
+        } else {
+          // Email OTP
+          authResult = await supabase.auth.signInWithOtp({
+            email: data.identifier,
+            options,
+          });
+        }
+        
+        const { error } = authResult;
+        
+        if (error) {
+          toast.error(error.message);
+          setIsLoading(false);
+          return;
+        }
+        
+        toast.success(`OTP sent to your ${isPhone ? 'phone' : 'email'}!`);
+        setShowOtpForm(true);
       }
-      
-      toast.success('OTP sent to your email!');
-      setShowOtpForm(true);
     } catch (error) {
       console.error('Signup error:', error);
       toast.error('An unexpected error occurred');
@@ -90,7 +139,8 @@ const Signup = () => {
     try {
       // Fix: Remove the 'data' property from options since it's not allowed by VerifyOtpParams type
       const { data: sessionData, error } = await supabase.auth.verifyOtp({
-        email,
+        email: !isPhone ? identifier : undefined,
+        phone: isPhone ? identifier : undefined,
         token: data.otp,
         type: 'signup',
       });
@@ -122,19 +172,28 @@ const Signup = () => {
     }
   };
 
+  const toggleAuthMethod = () => {
+    setUsePassword(!usePassword);
+  };
+
+  const toggleIdentifierType = () => {
+    setIsPhone(!isPhone);
+    form.setValue('isPhone', !isPhone);
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <Navbar />
       <div className="pt-24 flex justify-center items-center px-4">
-        <div className="glass-panel max-w-md w-full p-8">
-          <h1 className="heading-lg text-center mb-6">Sign Up</h1>
-          <p className="text-tech-darkGray/80 text-center mb-8">
+        <div className="glass-panel max-w-md w-full p-8 bg-white/90 dark:bg-gray-800/90 shadow-xl">
+          <h1 className="text-3xl font-bold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">Sign Up</h1>
+          <p className="text-gray-600 dark:text-gray-300 text-center mb-8">
             Create an account to access our AI assistant and event features.
           </p>
           
           {!showOtpForm ? (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                 <FormField
                   control={form.control}
                   name="name"
@@ -143,10 +202,10 @@ const Signup = () => {
                       <FormLabel>Full Name</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <User className="absolute left-3 top-2.5 h-5 w-5 text-tech-darkGray/50" />
+                          <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                           <Input 
                             placeholder="John Doe" 
-                            className="pl-10" 
+                            className="pl-10 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600" 
                             {...field} 
                           />
                         </div>
@@ -155,19 +214,42 @@ const Signup = () => {
                     </FormItem>
                   )}
                 />
+
+                <div className="flex justify-center space-x-2 mb-3">
+                  <Toggle 
+                    pressed={!isPhone} 
+                    onPressedChange={() => isPhone && toggleIdentifierType()} 
+                    className={`px-4 py-2 ${!isPhone ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : ''}`}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Email
+                  </Toggle>
+                  <Toggle 
+                    pressed={isPhone} 
+                    onPressedChange={() => !isPhone && toggleIdentifierType()} 
+                    className={`px-4 py-2 ${isPhone ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : ''}`}
+                  >
+                    <Phone className="mr-2 h-4 w-4" />
+                    Phone
+                  </Toggle>
+                </div>
                 
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="identifier"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{isPhone ? 'Phone Number' : 'Email'}</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-5 w-5 text-tech-darkGray/50" />
+                          {isPhone ? (
+                            <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          ) : (
+                            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          )}
                           <Input 
-                            placeholder="your@email.com" 
-                            className="pl-10" 
+                            placeholder={isPhone ? "+1234567890" : "your@email.com"} 
+                            className="pl-10 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600" 
                             {...field} 
                           />
                         </div>
@@ -177,12 +259,59 @@ const Signup = () => {
                   )}
                 />
                 
+                {usePassword && (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                            <Input 
+                              type="password" 
+                              placeholder="••••••••" 
+                              className="pl-10 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600" 
+                              {...field} 
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                <div className="flex justify-center">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={toggleAuthMethod}
+                    className="w-full mb-2 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                  >
+                    {usePassword ? (
+                      <>
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Use OTP Instead
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="mr-2 h-4 w-4" />
+                        Use Password Instead
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
                 <Button 
                   type="submit" 
-                  className="w-full bg-tech-blue hover:bg-tech-blue/90"
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2.5"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Sending OTP...' : 'Send OTP'}
+                  {isLoading ? 
+                    (usePassword ? 'Creating Account...' : 'Sending OTP...') : 
+                    (usePassword ? 'Create Account' : 'Send OTP')}
                 </Button>
               </form>
             </Form>
@@ -193,19 +322,23 @@ const Signup = () => {
                   control={otpForm.control}
                   name="otp"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Enter the OTP sent to your email</FormLabel>
+                    <FormItem className="space-y-4">
+                      <FormLabel className="text-center block">
+                        Enter the OTP sent to your {isPhone ? 'phone' : 'email'}
+                      </FormLabel>
                       <FormControl>
-                        <InputOTP maxLength={6} {...field}>
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
+                        <div className="flex justify-center">
+                          <InputOTP maxLength={6} {...field}>
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -215,7 +348,7 @@ const Signup = () => {
                 <div className="flex flex-col space-y-3">
                   <Button 
                     type="submit" 
-                    className="w-full bg-tech-blue hover:bg-tech-blue/90"
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2.5"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Verifying...' : 'Verify OTP'}
@@ -224,7 +357,7 @@ const Signup = () => {
                   <Button 
                     type="button" 
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
                     onClick={() => setShowOtpForm(false)}
                   >
                     Back to Signup
@@ -235,8 +368,8 @@ const Signup = () => {
           )}
           
           <div className="mt-6 text-center">
-            <p className="text-tech-darkGray/80">
-              Already have an account? <Link to="/login" className="text-tech-blue hover:text-tech-blue/90">Log In</Link>
+            <p className="text-gray-600 dark:text-gray-300">
+              Already have an account? <Link to="/login" className="text-blue-500 hover:text-blue-700 font-medium">Log In</Link>
             </p>
           </div>
         </div>
