@@ -3,12 +3,18 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import EventList from '@/components/EventList';
-import ChatInterface from '@/components/ChatInterface';
 import { Globe, Users, Calendar, ChevronUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
+  
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleChatButtonClick = () => {
+    navigate('/chat');
   };
 
   return (
@@ -59,10 +65,17 @@ const Index = () => {
               </p>
             </div>
           </div>
+          
+          <div className="text-center mt-12">
+            <button 
+              className="tech-button"
+              onClick={handleChatButtonClick}
+            >
+              Chat with AI Assistant
+            </button>
+          </div>
         </div>
       </section>
-      
-      <ChatInterface />
       
       {/* Footer */}
       <footer className="py-12 px-4 bg-tech-gray">

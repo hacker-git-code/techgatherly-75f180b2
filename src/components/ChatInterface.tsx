@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, ChevronDown, Bot, User, Info, HelpCircle } from 'lucide-react';
+import { Send, Mic, Bot, User, Info, HelpCircle } from 'lucide-react';
 import { chatbotResponses } from '@/utils/eventData';
 
 interface Message {
@@ -10,7 +10,11 @@ interface Message {
   timestamp: Date;
 }
 
-const ChatInterface = () => {
+interface ChatInterfaceProps {
+  initialQuery?: string;
+}
+
+const ChatInterface = ({ initialQuery = '' }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -19,7 +23,7 @@ const ChatInterface = () => {
       timestamp: new Date(),
     },
   ]);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(initialQuery);
   const [isThinking, setIsThinking] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   
@@ -30,6 +34,13 @@ const ChatInterface = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle initial query if provided
+  useEffect(() => {
+    if (initialQuery) {
+      handleSendMessage();
+    }
+  }, []);
 
   const handleSendMessage = () => {
     if (inputValue.trim() === '') return;
@@ -109,133 +120,121 @@ const ChatInterface = () => {
   };
 
   return (
-    <section id="assistant" className="py-20 px-4">
-      <div className="container mx-auto">
-        <div className="text-center mb-12 max-w-3xl mx-auto">
-          <span className="tag inline-block mb-4">AI Assistant</span>
-          <h2 className="heading-lg mb-4">Your Personal Tech Event Guide</h2>
-          <p className="body-md text-tech-darkGray/80">
-            Ask about event registration, get preparation tips, or discover networking opportunities with our AI assistant.
-          </p>
+    <div className="max-w-4xl mx-auto glass-panel h-[600px] flex flex-col">
+      {/* Chat header */}
+      <div className="flex items-center justify-between p-4 border-b border-tech-gray/20">
+        <div className="flex items-center">
+          <div className="w-10 h-10 rounded-full bg-tech-blue/10 flex items-center justify-center mr-3">
+            <Bot size={20} className="text-tech-blue" />
+          </div>
+          <div>
+            <h3 className="font-medium">Event Assistant</h3>
+            <p className="text-xs text-tech-darkGray/60">AI-powered guide</p>
+          </div>
         </div>
-        
-        <div className="max-w-4xl mx-auto glass-panel h-[600px] flex flex-col">
-          {/* Chat header */}
-          <div className="flex items-center justify-between p-4 border-b border-tech-gray/20">
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-tech-blue/10 flex items-center justify-center mr-3">
-                <Bot size={20} className="text-tech-blue" />
-              </div>
-              <div>
-                <h3 className="font-medium">Event Assistant</h3>
-                <p className="text-xs text-tech-darkGray/60">AI-powered guide</p>
-              </div>
-            </div>
-            <div className="flex">
-              <button className="icon-button" title="Help">
-                <HelpCircle size={20} className="text-tech-darkGray/70" />
-              </button>
-              <button className="icon-button" title="Information">
-                <Info size={20} className="text-tech-darkGray/70" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Messages container */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-4">
-              {messages.map(message => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[75%] flex ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {message.sender === 'ai' && (
-                      <div className="w-8 h-8 rounded-full bg-tech-blue/10 flex items-center justify-center mr-3 flex-shrink-0">
-                        <Bot size={16} className="text-tech-blue" />
-                      </div>
-                    )}
-                    
-                    {message.sender === 'user' && (
-                      <div className="w-8 h-8 rounded-full bg-tech-gray flex items-center justify-center ml-3 flex-shrink-0">
-                        <User size={16} className="text-tech-darkGray" />
-                      </div>
-                    )}
-                    
-                    <div 
-                      className={`rounded-2xl p-3 ${
-                        message.sender === 'user' 
-                          ? 'bg-tech-blue text-white' 
-                          : 'bg-tech-gray/30 text-tech-darkGray'
-                      }`}
-                    >
-                      <div className="whitespace-pre-line">{message.content}</div>
-                      <div 
-                        className={`text-xs mt-1 ${
-                          message.sender === 'user' 
-                            ? 'text-white/70 text-right' 
-                            : 'text-tech-darkGray/50'
-                        }`}
-                      >
-                        {formatTimestamp(message.timestamp)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {isThinking && (
-                <div className="flex justify-start">
-                  <div className="max-w-[75%] flex flex-row">
-                    <div className="w-8 h-8 rounded-full bg-tech-blue/10 flex items-center justify-center mr-3">
-                      <Bot size={16} className="text-tech-blue" />
-                    </div>
-                    <div className="rounded-2xl p-4 bg-tech-gray/30 text-tech-darkGray/70">
-                      <div className="flex space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-tech-darkGray/40 animate-pulse"></div>
-                        <div className="w-2 h-2 rounded-full bg-tech-darkGray/40 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="w-2 h-2 rounded-full bg-tech-darkGray/40 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div ref={messageEndRef} />
-            </div>
-          </div>
-          
-          {/* Input area */}
-          <div className="border-t border-tech-gray/20 p-4">
-            <div className="flex items-center">
-              <button className="icon-button mr-2">
-                <Mic size={20} className="text-tech-darkGray/70" />
-              </button>
-              <div className="flex-1">
-                <textarea
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask about tech events, registration processes, or networking..."
-                  className="w-full glass-input resize-none h-12 py-3"
-                  rows={1}
-                />
-              </div>
-              <button 
-                className={`icon-button ml-2 ${inputValue.trim() ? 'bg-tech-blue text-white' : ''}`}
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
-              >
-                <Send size={20} />
-              </button>
-            </div>
-            <div className="mt-2 text-xs text-tech-darkGray/60 text-center">
-              <p>Try asking: "How do I register for NVIDIA GTC?" or "Tips for networking at tech events"</p>
-            </div>
-          </div>
+        <div className="flex">
+          <button className="icon-button" title="Help">
+            <HelpCircle size={20} className="text-tech-darkGray/70" />
+          </button>
+          <button className="icon-button" title="Information">
+            <Info size={20} className="text-tech-darkGray/70" />
+          </button>
         </div>
       </div>
-    </section>
+      
+      {/* Messages container */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-4">
+          {messages.map(message => (
+            <div
+              key={message.id}
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-[75%] flex ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                {message.sender === 'ai' && (
+                  <div className="w-8 h-8 rounded-full bg-tech-blue/10 flex items-center justify-center mr-3 flex-shrink-0">
+                    <Bot size={16} className="text-tech-blue" />
+                  </div>
+                )}
+                
+                {message.sender === 'user' && (
+                  <div className="w-8 h-8 rounded-full bg-tech-gray flex items-center justify-center ml-3 flex-shrink-0">
+                    <User size={16} className="text-tech-darkGray" />
+                  </div>
+                )}
+                
+                <div 
+                  className={`rounded-2xl p-3 ${
+                    message.sender === 'user' 
+                      ? 'bg-tech-blue text-white' 
+                      : 'bg-tech-gray/30 text-tech-darkGray'
+                  }`}
+                >
+                  <div className="whitespace-pre-line">{message.content}</div>
+                  <div 
+                    className={`text-xs mt-1 ${
+                      message.sender === 'user' 
+                        ? 'text-white/70 text-right' 
+                        : 'text-tech-darkGray/50'
+                    }`}
+                  >
+                    {formatTimestamp(message.timestamp)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {isThinking && (
+            <div className="flex justify-start">
+              <div className="max-w-[75%] flex flex-row">
+                <div className="w-8 h-8 rounded-full bg-tech-blue/10 flex items-center justify-center mr-3">
+                  <Bot size={16} className="text-tech-blue" />
+                </div>
+                <div className="rounded-2xl p-4 bg-tech-gray/30 text-tech-darkGray/70">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-tech-darkGray/40 animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-tech-darkGray/40 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-tech-darkGray/40 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div ref={messageEndRef} />
+        </div>
+      </div>
+      
+      {/* Input area */}
+      <div className="border-t border-tech-gray/20 p-4">
+        <div className="flex items-center">
+          <button className="icon-button mr-2">
+            <Mic size={20} className="text-tech-darkGray/70" />
+          </button>
+          <div className="flex-1">
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about tech events, registration processes, or networking..."
+              className="w-full glass-input resize-none h-12 py-3"
+              rows={1}
+            />
+          </div>
+          <button 
+            className={`icon-button ml-2 ${inputValue.trim() ? 'bg-tech-blue text-white' : ''}`}
+            onClick={handleSendMessage}
+            disabled={!inputValue.trim()}
+          >
+            <Send size={20} />
+          </button>
+        </div>
+        <div className="mt-2 text-xs text-tech-darkGray/60 text-center">
+          <p>Try asking: "How do I register for NVIDIA GTC?" or "Tips for networking at tech events"</p>
+        </div>
+      </div>
+    </div>
   );
 };
 

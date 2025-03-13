@@ -1,15 +1,19 @@
 
 import React, { useState } from 'react';
 import { Search, Globe, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const SearchBar = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const navigate = useNavigate();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Searching for:', searchTerm);
-    // In a real app, this would trigger a search
+    if (searchTerm.trim()) {
+      // Redirect to chat page with the search query
+      navigate(`/chat?query=${encodeURIComponent(searchTerm.trim())}`);
+    }
   };
 
   return (

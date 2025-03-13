@@ -2,13 +2,20 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { SearchBar } from './SearchBar';
+import { useNavigate } from 'react-router-dom';
 
 const Hero = () => {
+  const navigate = useNavigate();
+  
   const scrollToEvents = () => {
     const eventsSection = document.getElementById('events');
     if (eventsSection) {
       eventsSection.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const handleChatButtonClick = () => {
+    navigate('/chat');
   };
 
   return (
@@ -40,10 +47,16 @@ const Hero = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8 animate-slide-up" style={{ animationDelay: '400ms' }}>
-          <button className="tech-button flex items-center justify-center">
+          <button 
+            className="tech-button flex items-center justify-center"
+            onClick={handleChatButtonClick}
+          >
             <span>Start Chatting with AI</span>
           </button>
-          <button className="subtle-button flex items-center justify-center" onClick={scrollToEvents}>
+          <button 
+            className="subtle-button flex items-center justify-center" 
+            onClick={scrollToEvents}
+          >
             <span>Browse Events</span>
           </button>
         </div>

@@ -1,11 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Search, Globe, User } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
   // Track scroll position to change navbar appearance
   useEffect(() => {
@@ -16,6 +20,27 @@ export const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Check authentication status when component mounts
+  useEffect(() => {
+    const checkAuth = () => {
+      const user = localStorage.getItem('user');
+      setIsLoggedIn(!!user);
+    };
+    
+    checkAuth();
+    
+    // Setup event listener for storage changes (in case of login/logout in another tab)
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    toast.success('Logged out successfully');
+    navigate('/');
+  };
+
   return (
     <header className={cn(
       "fixed top-0 w-full z-50 transition-all duration-300 px-4 md:px-8",
@@ -23,7 +48,7 @@ export const Navbar = () => {
     )}>
       <div className="container mx-auto flex justify-between items-center">
         {/* Logo */}
-        <a href="/" className="flex items-center">
+        <Link to="/" className="flex items-center">
           <div className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-tech-blue to-tech-lightBlue flex items-center justify-center text-white font-bold text-lg">
               T
@@ -35,16 +60,26 @@ export const Navbar = () => {
               TechGatherly
             </span>
           </div>
-        </a>
+        </Link>
 
         {/* Desktop navigation */}
         <nav className="hidden md:flex items-center space-x-8">
-          <a href="#events" className="text-tech-darkGray/80 hover:text-tech-blue transition-colors">Events</a>
-          <a href="#assistant" className="text-tech-darkGray/80 hover:text-tech-blue transition-colors">AI Assistant</a>
-          <a href="#networking" className="text-tech-darkGray/80 hover:text-tech-blue transition-colors">Networking</a>
-          <button className="tech-button">
-            Sign In
-          </button>
+          <Link to="/#events" className="text-tech-darkGray/80 hover:text-tech-blue transition-colors">Events</Link>
+          <Link to="/chat" className="text-tech-darkGray/80 hover:text-tech-blue transition-colors">AI Assistant</Link>
+          <Link to="/#networking" className="text-tech-darkGray/80 hover:text-tech-blue transition-colors">Networking</Link>
+          
+          {isLoggedIn ? (
+            <button 
+              onClick={handleLogout}
+              className="tech-button"
+            >
+              Log Out
+            </button>
+          ) : (
+            <Link to="/login" className="tech-button">
+              Sign In
+            </Link>
+          )}
         </nav>
 
         {/* Mobile menu button */}
@@ -61,30 +96,47 @@ export const Navbar = () => {
       {isMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-gray-900 shadow-md animate-slide-down">
           <div className="container mx-auto py-4 px-6 flex flex-col space-y-4">
-            <a 
-              href="#events" 
+            <Link 
+              to="/#events" 
               className="py-2 text-tech-darkGray/80 hover:text-tech-blue transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Events
-            </a>
-            <a 
-              href="#assistant" 
+            </Link>
+            <Link 
+              to="/chat" 
               className="py-2 text-tech-darkGray/80 hover:text-tech-blue transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               AI Assistant
-            </a>
-            <a 
-              href="#networking" 
+            </Link>
+            <Link 
+              to="/#networking" 
               className="py-2 text-tech-darkGray/80 hover:text-tech-blue transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Networking
-            </a>
-            <button className="tech-button w-full">
-              Sign In
-            </button>
+            </Link>
+            
+            {isLoggedIn ? (
+              <button 
+                onClick={() => {
+                  handleLogout();
+                  setIsMenuOpen(false);
+                }}
+                className="tech-button w-full"
+              >
+                Log Out
+              </button>
+            ) : (
+              <Link 
+                to="/login" 
+                className="tech-button w-full flex justify-center"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       )}
