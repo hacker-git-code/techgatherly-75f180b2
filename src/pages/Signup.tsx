@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, User } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -8,6 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SignupFormValues {
   name: string;
@@ -19,6 +20,18 @@ const Signup = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/chat');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+  
   const form = useForm<SignupFormValues>({
     defaultValues: {
       name: '',
@@ -27,16 +40,34 @@ const Signup = () => {
     },
   });
 
-  const onSubmit = (data: SignupFormValues) => {
+  const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
-    // This would normally connect to a backend
-    // For now, we'll simulate a signup success
-    setTimeout(() => {
-      localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email }));
-      setIsLoading(false);
-      toast.success('Account created successfully!');
+    
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+          },
+        },
+      });
+      
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+      
+      toast.success('Account created successfully! Please check your email to confirm your account.');
       navigate('/chat');
-    }, 1500);
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
